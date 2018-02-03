@@ -97,7 +97,7 @@ class Checkerboard():
         ss_ = torch.LongTensor(self.board)
         dd = self._check_done(x,y,stone)
         rr = dd #win 
-        return ss_ , rr , dd 
+        return ss_ , rr , dd , 0
     
     def _set_xy(self, x, y, stone):
         self.board[y][x] = stone
@@ -137,38 +137,41 @@ class Checkerboard():
         if self.inline_draw:
             display(self.fig)
         pass
+    def render(self):
+        self.draw()
+
+
+
+if __name__=="__main__":
+    board = Checkerboard(10)
+    board.reset()
+    
+    for i in range(100):
+        "x,y = black agent .get_action(state)"
+        x,y = board.get_random_xy()
+        ss_ , rr, dd, = board.step(x,y,board.black)
+        board.draw()
+        if dd:
+            print("done black win")
+            break
+        elif dd==-1:
+            print("connect 6 black lose")
+            break
+        
+        "x,y = white agent .get_action(state)"
+        x,y = board.get_random_xy()
+        ss_ , rr, dd, = board.step(x,y,board.white)
+        board.draw()
+        if dd:
+            print("done white win")
+            break
+        elif dd==-1:
+            print("connect 6 white lose")
+            break
+        
     
 
 
-board = Checkerboard(10)
-board.reset()
-
-for i in range(100):
-    "x,y = black agent .get_action(state)"
-    x,y = board.get_random_xy()
-    ss_ , rr, dd, = board.step(x,y,board.black)
-    board.draw()
-    if dd:
-        print("done black win")
-        break
-    elif dd==-1:
-        print("connect 6 black lose")
-        break
-    
-    "x,y = white agent .get_action(state)"
-    x,y = board.get_random_xy()
-    ss_ , rr, dd, = board.step(x,y,board.white)
-    board.draw()
-    if dd:
-        print("done white win")
-        break
-    elif dd==-1:
-        print("connect 6 white lose")
-        break
-    
-
-
-#if __name__=="__main__":
     
     
     
