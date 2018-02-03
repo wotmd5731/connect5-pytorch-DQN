@@ -141,7 +141,6 @@ class Checkerboard():
 
 
 board = Checkerboard(10)
-#plt.show()
 board.reset()
 
 for i in range(100):
@@ -149,7 +148,6 @@ for i in range(100):
     x,y = board.get_random_xy()
     ss_ , rr, dd, = board.step(x,y,board.black)
     board.draw()
-#    plt.pause(0.5)
     if dd:
         print("done black win")
         break
@@ -161,19 +159,13 @@ for i in range(100):
     x,y = board.get_random_xy()
     ss_ , rr, dd, = board.step(x,y,board.white)
     board.draw()
-#    plt.pause(0.5)
     if dd:
         print("done white win")
         break
     elif dd==-1:
         print("connect 6 white lose")
         break
-#    plt.show()
     
-
-#print(board)
-#board.reset()
-#board.draw()
 
 
 #if __name__=="__main__":
