@@ -48,6 +48,7 @@ class Checkerboard():
 #        plt.xticks(range(11))
 #        plt.show()
         
+        
     def __repr__(self):
         return "info  max_size %d " % (self.max_size)
 
@@ -70,9 +71,6 @@ class Checkerboard():
             return 0
         #board data == stone   . next rec 
         return self._check_rec(x+dx,y+dy,dx,dy,stone) + 1
-        
-        
-        pass
     
     def _check_done(self,x,y,stone):
         'stone으로 들어온게 5개 만들면 끝 과 리워드 +1 '
@@ -96,10 +94,8 @@ class Checkerboard():
     def step(self, x, y, stone):
         self._set_xy(x,y,stone)
         ss_ = torch.LongTensor(self.board)
-        
         dd = self._check_done(x,y,stone)
         rr = dd #win 
-        
         return ss_ , rr , dd 
     
     def _set_xy(self, x, y, stone):
@@ -126,6 +122,7 @@ class Checkerboard():
     def draw(self):
 #        plt.show()
 #        plt.clf()
+        
         plt.draw()
         plt.pause(0.001)
         pass
@@ -133,15 +130,15 @@ class Checkerboard():
 
 
 board = Checkerboard(15)
-plt.show()
-print(board.reset())
+#plt.show()
+board.reset()
 
 for i in range(100):
     "x,y = black agent .get_action(state)"
     x,y = board.get_random_xy()
     ss_ , rr, dd, = board.step(x,y,board.black)
-    board.draw()
-    plt.pause(0.01)
+#    board.draw()
+#    plt.pause(0.01)
     if dd:
         print("done black win")
         break
@@ -152,14 +149,15 @@ for i in range(100):
     "x,y = white agent .get_action(state)"
     x,y = board.get_random_xy()
     ss_ , rr, dd, = board.step(x,y,board.white)
-    board.draw()
-    plt.pause(0.01)
+#    board.draw()
+#    plt.pause(0.01)
     if dd:
         print("done white win")
         break
     elif dd==-1:
         print("connect 6 white lose")
         break
+#    plt.show()
     
 
 #print(board)

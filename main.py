@@ -5,5 +5,5 @@ Created on Fri Feb  2 20:15:47 2018
 @author: JAE
 """
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import checkboard
+
