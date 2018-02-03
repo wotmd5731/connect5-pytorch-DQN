@@ -15,6 +15,7 @@ from torch.autograd import Variable
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from IPython.display import display
 
 
 class Checkerboard():
@@ -24,7 +25,7 @@ class Checkerboard():
     block = 3
     
     def __init__(self,max_size):
-        
+        self.inline_draw = True
         self.max_size = max_size
         self.board = [[ self.empty ]*max_size for i in range(max_size)]  
             
@@ -119,17 +120,27 @@ class Checkerboard():
             x,y = random.randint(0,self.max_size-1),random.randint(0,self.max_size-1)
         return x,y
     
+
+
     def draw(self):
-#        plt.show()
 #        plt.clf()
-        
-        plt.draw()
+#        self.ax.draw()
+#        self.ax.figure.canvas.draw()
+#        self.fig.canvas.draw()
+#        self.fig.update()
+#        self.ax.update()
+#        plt.draw()
+#        self.fig.clf()
+        plt.show()
         plt.pause(0.001)
+        # ipython command 
+        if self.inline_draw:
+            display(self.fig)
         pass
     
 
 
-board = Checkerboard(15)
+board = Checkerboard(10)
 #plt.show()
 board.reset()
 
@@ -137,8 +148,8 @@ for i in range(100):
     "x,y = black agent .get_action(state)"
     x,y = board.get_random_xy()
     ss_ , rr, dd, = board.step(x,y,board.black)
-#    board.draw()
-#    plt.pause(0.01)
+    board.draw()
+#    plt.pause(0.5)
     if dd:
         print("done black win")
         break
@@ -149,8 +160,8 @@ for i in range(100):
     "x,y = white agent .get_action(state)"
     x,y = board.get_random_xy()
     ss_ , rr, dd, = board.step(x,y,board.white)
-#    board.draw()
-#    plt.pause(0.01)
+    board.draw()
+#    plt.pause(0.5)
     if dd:
         print("done white win")
         break
