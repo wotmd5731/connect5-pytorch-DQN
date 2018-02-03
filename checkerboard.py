@@ -92,6 +92,9 @@ class Checkerboard():
         
         return 0
 
+    def step_flat(self, num , stone):
+        return self.step(int(num%self.max_size),int(num/self.max_size),stone)
+        
     def step(self, x, y, stone):
         self._set_xy(x,y,stone)
         ss_ = torch.LongTensor(self.board)
@@ -119,8 +122,20 @@ class Checkerboard():
         while not board.get_xy(x,y)==board.empty:
             x,y = random.randint(0,self.max_size-1),random.randint(0,self.max_size-1)
         return x,y
+    def get_random_xy_flat(self):
+        x,y = random.randint(0,self.max_size-1),random.randint(0,self.max_size-1)
+        while not self.get_xy(x,y)==self.empty:
+            x,y = random.randint(0,self.max_size-1),random.randint(0,self.max_size-1)
+        
+        return x+y*self.max_size
     
-
+    def change_enemy(self, from_num, to_num):
+        for y in range(self.max_size):
+            for x in range(self.max_size):
+                if self.board[y][x] == from_num :
+                    self.board[y][x] = to_num
+                elif self.board[y][x] == to_num :
+                    self.board[y][x] = from_num
 
     def draw(self):
 #        plt.clf()
@@ -132,7 +147,7 @@ class Checkerboard():
 #        plt.draw()
 #        self.fig.clf()
         plt.show()
-        plt.pause(0.001)
+#        plt.pause(0.001)
         # ipython command 
         if self.inline_draw:
             display(self.fig)
@@ -149,7 +164,7 @@ if __name__=="__main__":
     for i in range(100):
         "x,y = black agent .get_action(state)"
         x,y = board.get_random_xy()
-        ss_ , rr, dd, = board.step(x,y,board.black)
+        ss_ , rr, dd,_ = board.step(x,y,board.black)
         board.draw()
         if dd:
             print("done black win")
@@ -160,7 +175,7 @@ if __name__=="__main__":
         
         "x,y = white agent .get_action(state)"
         x,y = board.get_random_xy()
-        ss_ , rr, dd, = board.step(x,y,board.white)
+        ss_ , rr, dd,_ = board.step(x,y,board.white)
         board.draw()
         if dd:
             print("done white win")

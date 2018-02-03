@@ -12,11 +12,6 @@ import matplotlib.pyplot as plt
 from model import DQN,Dueling_DQN,Noisy_Distributional_Dueling_DQN , DQN_CNN,DQN_LSTM
 
 
-use_cuda = torch.cuda.is_available() and False
-FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
-LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
-ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
-Tensor = FloatTensor
 glob_count=0    
 
 class Agent(nn.Module):
