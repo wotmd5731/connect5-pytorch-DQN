@@ -19,16 +19,17 @@ from argument import get_args
 args = get_args('DQN')
 
 from checkerboard import Checkerboard
-env = Checkerboard(10)
+board_max = 10
+env = Checkerboard(board_max)
 
 
 #args.game = 'MountainCar-v0'
-args.max_step = 100
+args.max_step = 100000
 args.action_space = env.max_size*env.max_size
 args.state_space = env.max_size*env.max_size
-args.memory_capacity = 1000
-args.learn_start = 1000
-args.render= True
+args.memory_capacity = 10000000
+args.learn_start = 10000
+#args.render= True
 
 #from env import Env
 #env = Env(args)
@@ -41,6 +42,9 @@ memory = ReplayMemory(args)
 #args.render= True
 from agent import Agent
 agent = Agent(args)
+
+#agent.load()
+#agent.target_dqn_update()
 
 
 
@@ -97,68 +101,57 @@ def test(main_episode):
 
 
 
-"""
-randomize state push in memory
-before main loop start
-"""
-global_count = 0
-episode = 0
-while True:
-    
-    episode += 1
-    T=0
-    state = env.reset()
-    while T < args.max_step:
-#        action = random.randrange(0,args.action_space)
-        ax,ay = env.get_random_xy()
-        next_state , reward , done, _ = env.step(ax,ay,env.black)
-        
-        """ EDITING NOW """
-        
-        memory.push([state, action, reward, next_state, done])
-        state = next_state
-        T += 1
-        global_count += 1
-        if done :
-            break
-    print("\r push : %d/%d  "%(global_count,args.learn_start),end='\r',flush=True)
-#    print("\r push : ",global_count,'/',args.learn_start,end='\r',flush=True)
-
-    if global_count > args.learn_start:
-        break
-
-print('')
-
+random.seed(time.time())
 """
 main loop
 """
 global_count = 0
 episode = 0
 while episode < args.max_episode_length:
-    episode += 1
+    
     T=0
+    turn = 0
+    max_action_value = 0
     state = env.reset()
 #    args.epsilon -= 0.8/args.max_episode_length
     while T < args.max_step:
-        T += 1
-        global_count += 1
-        
-        action = agent.get_action(state)
+        action_value = 0
+        if T%2 == 0 :
+            turn = env.black
+            env.change_enemy(env.white,env.black)
+        else:
+            turn = env.white
+            env.change_enemy(env.black,env.white)
+            
+        if random.random() <= args.epsilon or global_count < args.learn_start:
+            action = env.get_random_xy_flat()
+        else:
+            action, action_value = agent.get_action(state)
        
-        next_state , reward , done, _ = env.step(action)
-        if args.reward_clip > 0:
-            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
- 
+        max_action_value = max(max_action_value,action_value)
+        
+        next_state , reward , done, _ = env.step_flat(action,turn)
+#        if args.reward_clip > 0:
+#            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
         memory.push([state, action, reward, next_state, done])
         state = next_state
-        
-        if global_count % args.replay_interval == 0 :
+        if global_count % args.replay_interval == 0 and global_count > args.learn_start:
             agent.basic_learn(memory)
         if global_count % args.target_update_interval == 0 :
             agent.target_dqn_update()
-            
-            
+        T += 1
+        global_count += 1
+        
         if done :
+            if args.render:
+                env.render()
             break
-    if episode % args.evaluation_interval == 0 :
-        test(episode)
+    
+    if episode%10000 ==0 :
+        print('save')
+        agent.save()
+    print('episode : ', episode, '  step : ',T, ' max_action ',max_action_value)
+    
+#    if episode % args.evaluation_interval == 0 :
+#        test(episode)
+    episode += 1
