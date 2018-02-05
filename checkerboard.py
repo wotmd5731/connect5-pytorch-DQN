@@ -156,21 +156,13 @@ class Checkerboard():
         
         return x+y*self.max_size
     
-<<<<<<< HEAD
     def change_enemy(self,from_num, to_num):
         for y in range(self.max_size):
             for x in range(self.max_size):
                 if self.board[y][x] == from_num:
                     self.board[y][x] = to_num
                 elif self.board[y][x] == to_num:
-=======
-    def change_enemy(self, from_num, to_num):
-        for y in range(self.max_size):
-            for x in range(self.max_size):
-                if self.board[y][x] == from_num :
-                    self.board[y][x] = to_num
-                elif self.board[y][x] == to_num :
->>>>>>> 3059c0bb9ea3cbd1fa6f8b7a09cf271684e645b9
+
                     self.board[y][x] = from_num
 
     def draw(self):
@@ -183,11 +175,6 @@ class Checkerboard():
 #        plt.draw()
 #        self.fig.clf()
         plt.show()
-<<<<<<< HEAD
-        
-=======
-#        plt.pause(0.001)
->>>>>>> 3059c0bb9ea3cbd1fa6f8b7a09cf271684e645b9
         # ipython command 
         if self.inline_draw:
             display(self.fig)

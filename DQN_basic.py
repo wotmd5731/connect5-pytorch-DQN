@@ -147,9 +147,9 @@ while episode < args.max_episode_length:
                 env.render()
             break
     
-    if episode%10000 ==0 :
-        print('save')
-        agent.save()
+#    if episode%10000 ==0 :
+#        print('save')
+#        agent.save()
     print('episode : ', episode, '  step : ',T, ' max_action ',max_action_value)
     
 #    if episode % args.evaluation_interval == 0 :
