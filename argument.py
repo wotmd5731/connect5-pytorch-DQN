@@ -34,7 +34,7 @@ def get_args(name):
     parser.add_argument('--max-episode-length', type=int, default=100000, metavar='LENGTH', help='Max episode length (0 to disable)')
     
     #parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
-    parser.add_argument('--hidden-size', type=int, default=512, metavar='SIZE', help='Network hidden size')
+    parser.add_argument('--hidden-size', type=int, default=1024, metavar='SIZE', help='Network hidden size')
 #    parser.add_argument('--hidden-size', type=int, default=32, metavar='SIZE', help='Network hidden size')
     
     parser.add_argument('--noisy-std', type=float, default=0.1, metavar='σ', help='Initial standard deviation of noisy linear layers')

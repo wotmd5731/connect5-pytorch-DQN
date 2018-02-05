@@ -89,7 +89,8 @@ class Checkerboard():
         
         # 5개 완성 시 리턴 1
         if max_ret == 5:
-            reward = 1
+#            reward = 1
+            reward = 0
             self.next_done_flag = 1
             print("create 5connection by me ! **** you win ****")
         #6개 완성시 자동 패배
@@ -101,9 +102,6 @@ class Checkerboard():
     def step_flat(self, num ,stone):
         return self.step(int(num%self.max_size),int(num/self.max_size), stone)
 
-    def step_flat(self, num , stone):
-        return self.step(int(num%self.max_size),int(num/self.max_size),stone)
-        
     def step(self, x, y, stone):
         if self.get_xy(x,y) != self.empty:
             print("same position -1 ")
@@ -149,20 +147,14 @@ class Checkerboard():
         while not self.get_xy(x,y)==self.empty:
             x,y = random.randint(0,self.max_size-1),random.randint(0,self.max_size-1)
         return x,y
-    def get_random_xy_flat(self):
-        x,y = random.randint(0,self.max_size-1),random.randint(0,self.max_size-1)
-        while not self.get_xy(x,y)==self.empty:
-            x,y = random.randint(0,self.max_size-1),random.randint(0,self.max_size-1)
-        
-        return x+y*self.max_size
     
+
     def change_enemy(self,from_num, to_num):
         for y in range(self.max_size):
             for x in range(self.max_size):
                 if self.board[y][x] == from_num:
                     self.board[y][x] = to_num
                 elif self.board[y][x] == to_num:
-
                     self.board[y][x] = from_num
 
     def draw(self):

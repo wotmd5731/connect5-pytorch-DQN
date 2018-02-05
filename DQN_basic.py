@@ -28,8 +28,8 @@ args.max_step = 100000
 args.action_space = env.max_size*env.max_size
 args.state_space = env.max_size*env.max_size
 args.memory_capacity = 10000000
-args.learn_start = 10000
-#args.render= True
+args.learn_start = 100
+args.render= True
 
 #from env import Env
 #env = Env(args)
@@ -118,10 +118,12 @@ while episode < args.max_episode_length:
         action_value = 0
         if T%2 == 0 :
             turn = env.black
-            env.change_enemy(env.white,env.black)
+#            env.change_enemy(env.white,env.black)
+            
         else:
             turn = env.white
-            env.change_enemy(env.black,env.white)
+#            env.change_enemy(env.black,env.white)
+            
             
         if random.random() <= args.epsilon or global_count < args.learn_start:
             action = env.get_random_xy_flat()
