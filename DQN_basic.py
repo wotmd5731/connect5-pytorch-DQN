@@ -18,18 +18,21 @@ import argparse
 from argument import get_args
 args = get_args('DQN')
 
-from checkerboard import Checkerboard
-board_max = 10
-env = Checkerboard(board_max)
-
-
+board_max = 7
 #args.game = 'MountainCar-v0'
-args.max_step = 100000
-args.action_space = env.max_size*env.max_size
-args.state_space = env.max_size*env.max_size
+args.max_step = board_max*board_max
+
+args.action_space = board_max*board_max
+args.state_space = board_max*board_max
 args.memory_capacity = 10000000
 args.learn_start = 100
-args.render= True
+args.max_episode_length = 1000000
+args.render = True
+
+
+from checkerboard import Checkerboard
+
+env = Checkerboard(board_max, args.render)
 
 #from env import Env
 #env = Env(args)
@@ -43,8 +46,8 @@ memory = ReplayMemory(args)
 from agent import Agent
 agent = Agent(args)
 
-#agent.load()
-#agent.target_dqn_update()
+agent.load()
+agent.target_dqn_update()
 
 
 
@@ -111,19 +114,17 @@ while episode < args.max_episode_length:
     
     T=0
     turn = 0
-    max_action_value = 0
+    max_action_value = -999999999999999
     state = env.reset()
 #    args.epsilon -= 0.8/args.max_episode_length
     while T < args.max_step:
-        action_value = 0
+        action_value = -999999999999999
         if T%2 == 0 :
+            env.change_enemy(env.white,env.black)
             turn = env.black
-#            env.change_enemy(env.white,env.black)
-            
         else:
+            env.change_enemy(env.black,env.white)
             turn = env.white
-#            env.change_enemy(env.black,env.white)
-            
             
         if random.random() <= args.epsilon or global_count < args.learn_start:
             action = env.get_random_xy_flat()
@@ -133,6 +134,8 @@ while episode < args.max_episode_length:
         max_action_value = max(max_action_value,action_value)
         
         next_state , reward , done, _ = env.step_flat(action,turn)
+        env.render()
+        
 #        if args.reward_clip > 0:
 #            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
         memory.push([state, action, reward, next_state, done])
@@ -157,3 +160,5 @@ while episode < args.max_episode_length:
 #    if episode % args.evaluation_interval == 0 :
 #        test(episode)
     episode += 1
+    
+agent.save()

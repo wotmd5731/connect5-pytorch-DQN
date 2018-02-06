@@ -24,8 +24,9 @@ class Checkerboard():
     white = -1
     block = 3
     
-    def __init__(self,max_size):
-        self.inline_draw = True
+    def __init__(self,max_size,inline_draw=False):
+        self.inline_draw = inline_draw
+        
         self.next_done_flag = 0
         
         self.max_size = max_size
@@ -150,6 +151,13 @@ class Checkerboard():
     
 
     def change_enemy(self,from_num, to_num):
+        if self.black ==from_num :
+            self.black=to_num
+            self.white=from_num
+        else :
+            self.black=to_num
+            self.white=from_num
+            
         for y in range(self.max_size):
             for x in range(self.max_size):
                 if self.board[y][x] == from_num:

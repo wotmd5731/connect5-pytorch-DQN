@@ -8,7 +8,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
-    
+import os
+
 from model import DQN
 
 
@@ -44,13 +45,15 @@ class Agent(nn.Module):
 
 #        plt.show()
     
-    def save(self):
-        PATH = './net_param'
-        torch.save(self.main_dqn.state_dict(),PATH)
+    def save(self,path ='./param.p'):
+        torch.save(self.main_dqn.state_dict(),path)
         
-    def load(self):
-        PATH = './net_param'
-        self.main_dqn.load_state_dict(torch.load(PATH))
+    def load(self,path ='./param.p'):
+        if os.path.exists(path):
+            self.main_dqn.load_state_dict(torch.load(path))
+        else :
+            print("file not exist")
+            
         
     
     def target_dqn_update(self):
