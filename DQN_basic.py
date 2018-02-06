@@ -27,7 +27,13 @@ args.state_space = board_max*board_max
 args.memory_capacity = 10000000
 args.learn_start = 100
 args.max_episode_length = 1000000
-args.render = True
+#args.render = True
+
+if args.replay_interval % 2 ==0:
+    args.replay_interval += 1 
+if args.target_update_interval % 2 == 0:
+    args.target_update_interval += 1
+            
 
 
 from checkerboard import Checkerboard
@@ -44,10 +50,14 @@ memory = ReplayMemory(args)
 #args.learn_start = 1000
 #args.render= True
 from agent import Agent
-agent = Agent(args)
+B_Agent = Agent(args)
+W_Agent = Agent(args)
 
-agent.load()
-agent.target_dqn_update()
+
+W_Agent.load('param_W.p')
+B_Agent.load('param_B.p')
+W_Agent.target_dqn_update()
+B_Agent.target_dqn_update()
 
 
 
@@ -76,7 +86,7 @@ def test(main_episode):
             if args.render:
                 env.render()
                 
-            action = agent.get_action(state,evaluate=True)
+            action = B_Agent.get_action(state,evaluate=True)
             next_state , reward , done, _ = env.step(action)
             state = next_state
     
@@ -120,16 +130,16 @@ while episode < args.max_episode_length:
     while T < args.max_step:
         action_value = -999999999999999
         if T%2 == 0 :
-            env.change_enemy(env.white,env.black)
+            Agent_ptr = B_Agent
             turn = env.black
         else:
-            env.change_enemy(env.black,env.white)
+            Agent_ptr = W_Agent
             turn = env.white
-            
+        
         if random.random() <= args.epsilon or global_count < args.learn_start:
             action = env.get_random_xy_flat()
         else:
-            action, action_value = agent.get_action(state)
+            action, action_value = Agent_ptr.get_action(state)
        
         max_action_value = max(max_action_value,action_value)
         
@@ -140,25 +150,31 @@ while episode < args.max_episode_length:
 #            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
         memory.push([state, action, reward, next_state, done])
         state = next_state
+        
+        # replay_interval, target_update_interval  only used  odd number 
         if global_count % args.replay_interval == 0 and global_count > args.learn_start:
-            agent.basic_learn(memory)
+            Agent_ptr.basic_learn(memory)
         if global_count % args.target_update_interval == 0 :
-            agent.target_dqn_update()
+            Agent_ptr.target_dqn_update()
+            
+            
         T += 1
         global_count += 1
         
         if done :
+            
             if args.render:
                 env.render()
             break
     
 #    if episode%10000 ==0 :
 #        print('save')
-#        agent.save()
+#        B_Agent.save()
     print('episode : ', episode, '  step : ',T, ' max_action ',max_action_value)
     
 #    if episode % args.evaluation_interval == 0 :
 #        test(episode)
     episode += 1
     
-agent.save()
+B_Agent.save('param_B.p')
+W_Agent.save('param_W.p')
