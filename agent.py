@@ -132,6 +132,58 @@ class Agent_conv2d(Basic_Agent):
     
     
     
+            
+class Agent_conv3d(Basic_Agent):
+    def __init__(self,args,DQN_model):
+        super().__init__(args,DQN_model)
+        self.history_length = args.history_length
+                
+    
+    def get_action(self,state):
+        state = torch.stack(state,0).unsqueeze(0).unsqueeze(0)
+        ret = self.main_dqn(Variable(state,volatile=True).type(torch.FloatTensor))
+        action_value = ret.max(1)[0].data[0]
+        action = ret.max(1)[1].data[0] #return max index call [1] 
+        return action, action_value
+        
+    
+    def learn(self,memory):
+        random.seed(time.time())
+        
+        batch = memory.sample(self.batch_size, self.history_length)
+        [states, actions, rewards, next_states, dones] = zip(*batch)
+        
+        state_batch = Variable( torch.stack(states,0).type(torch.FloatTensor),volatile = True).unsqueeze(1)
+        action_batch = Variable(torch.LongTensor(actions),volatile = True)
+        reward_batch = Variable(torch.FloatTensor(rewards),volatile = True)
+        next_states_batch = Variable(torch.stack(next_states,0).type(torch.FloatTensor),volatile = True).unsqueeze(1)
+        done_batch = Variable(torch.FloatTensor(dones),volatile = True)
+        done_batch = -done_batch +1
+
+
+                
+        state_action_values = self.main_dqn(state_batch).gather(1, action_batch.view(-1,1)).view(-1)
+        state_action_values.volatile = False
+        state_action_values.requires_grad = True
+        
+        next_state_values = self.target_dqn(next_states_batch).max(1)[0]
+        next_state_values.volatile = False
+        next_state_values.requires_grad = True
+        
+        # Compute the expected Q values
+        expected_state_action_values = (next_state_values * self.discount * done_batch) + reward_batch
+        expected_state_action_values.volatile = False
+        expected_state_action_values.requires_grad = True
+        
+        loss = F.mse_loss(state_action_values, expected_state_action_values)        
+        
+        self.optimizer.zero_grad()
+        loss.backward()
+        nn.utils.clip_grad_norm(self.main_dqn.parameters(), self.max_gradient_norm)  # Clip gradients (normalising by max value of gradient L2 norm)
+        self.optimizer.step()
+    
+    
+    
     
     
     

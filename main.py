@@ -14,7 +14,7 @@ import sys
 
 import argparse
 parser = argparse.ArgumentParser(description='DQN')
-parser.add_argument('--name', type=str, default='DQN', help='stored name')
+parser.add_argument('--name', type=str, default='main_conv2d.p', help='stored name')
 parser.add_argument('--epsilon', type=float, default=0.33, help='random action select probability')
 #parser.add_argument('--render', type=bool, default=True, help='enable rendering')
 parser.add_argument('--render', type=bool, default=False, help='enable rendering')
@@ -27,7 +27,7 @@ parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
 parser.add_argument('--action-space', type=int, default=2 ,help='game action space')
 parser.add_argument('--state-space', type=int, default=4 ,help='game action space')
 parser.add_argument('--max-episode-length', type=int, default=100000, metavar='LENGTH', help='Max episode length (0 to disable)')
-#parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
+parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
 parser.add_argument('--hidden-size', type=int, default=1024, metavar='SIZE', help='Network hidden size')
 parser.add_argument('--noisy-std', type=float, default=0.1, metavar='σ', help='Initial standard deviation of noisy linear layers')
 parser.add_argument('--atoms', type=int, default=51, metavar='C', help='Discretised size of value distribution')
@@ -90,8 +90,12 @@ env = Checkerboard(board_max, args.render)
 #from env import Env
 #env = Env(args)
 
-from memory import ReplayMemory 
+#from memory import ReplayMemory 
+#memory = ReplayMemory(args)
+
+from memory import ReplayMemory
 memory = ReplayMemory(args)
+
 
 
 
@@ -105,13 +109,16 @@ from agent import Agent_conv2d
 B_Agent = Agent_conv2d(args,DQN_conv2d)
 W_Agent = Agent_conv2d(args,DQN_conv2d)
 
+#from model import DQN_conv3d
+#from agent import Agent_conv3d
+#B_Agent = Agent_conv3d(args,DQN_conv3d)
+#W_Agent = Agent_conv3d(args,DQN_conv3d)
 
-
-#W_Agent.load('param_W.p')
-#B_Agent.load('param_B.p')
-#W_Agent.target_dqn_update()
-#B_Agent.target_dqn_update()
-
+    
+W_Agent.load('W'+args.name)
+B_Agent.load('B'+args.name)
+W_Agent.target_dqn_update()
+B_Agent.target_dqn_update()
 
 
 """
@@ -228,5 +235,6 @@ while episode < args.max_episode_length:
 #        test(episode)
     episode += 1
     
-B_Agent.save('param_B.p')
-W_Agent.save('param_W.p')
+    
+B_Agent.save('B'+args.name)
+W_Agent.save('W'+args.name)

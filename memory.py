@@ -26,4 +26,14 @@ class ReplayMemory(object):
         return len(self.memory)
 
 
-
+class ReplayMemory_history(ReplayMemory):
+    def __init__(self,args):
+        super().__init__(args)
+        
+    def sample(self,batch_size,history_length):
+        sample = []
+        for b in range(batch_size):
+            num = random.randint(0,len(self.memory)-1 - history_length)
+            sample.append(self.memory[num])
+        return sample
+    
