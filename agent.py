@@ -151,10 +151,11 @@ class Agent_rainbow(nn.Module):
         self.target_dqn.eval()
         
         self.atoms = args.atoms
-        self.Vmin = args.V_min
-        self.Vmax = args.V_max
+        self.v_min = args.V_min
+        self.v_max = args.V_max
         self.support = torch.linspace(args.V_min, args.V_max, args.atoms)  # Support (range) of z
         self.delta_z = (args.V_max - args.V_min) / (args.atoms - 1)
+        self.m = torch.zeros(args.batch_size, self.atoms).type(torch.FloatTensor)
         self.discount = args.discount
         self.priority_exponent = args.priority_exponent
         self.max_gradient_norm = args.max_gradient_norm
@@ -201,19 +202,24 @@ class Agent_rainbow(nn.Module):
         
     
     def _get_categorical(self, next_states, rewards, mask):
+        # input dim = [batch , channel , h, w ]
         batch_sz = next_states.size(0)
         gamma = self.discount
 
         # Compute probabilities p(x, a)
         probs = self.target_dqn(next_states).data
+        #[batch x action x atoms] 
         qs = torch.mul(probs, self.support.expand_as(probs))
+        
+        
         argmax_a = qs.sum(2).max(1)[1].unsqueeze(1).unsqueeze(1)
         action_mask = argmax_a.expand(batch_sz, 1, self.atoms)
-        qa_probs = probs.gather(1, action_mask).squeeze()
-
+        #action mask  [batch x 1 x atoms]
+        qa_probs = probs.gather(1, action_mask).view(batch_sz,self.atoms)
+        #qa_probs [32 x 21 ]
         # Mask gamma and reshape it torgether with rewards to fit p(x,a).
         rewards = rewards.expand_as(qa_probs)
-        gamma = (mask.float() * gamma).expand_as(qa_probs)
+        gamma = (mask * gamma).expand_as(qa_probs)
 
         # Compute projection of the application of the Bellman operator.
 #        bellman_op = rewards + gamma * self.support.unsqueeze(0).expand_as(rewards)
@@ -251,20 +257,21 @@ class Agent_rainbow(nn.Module):
         return Variable(m)
 
 
-    """now editing 
-    
-    """
 
-    def get_td_error(self,re,st,ac,st_):
-        re = Variable(torch.FloatTensor([re])).unsqueeze(0)
+    def get_td_error(self,re,st,ac,st_,dd):
+        re = torch.FloatTensor([re])
         st = Variable(st.type(torch.FloatTensor)).unsqueeze(0).unsqueeze(0)
         st_ = Variable(st_.type(torch.FloatTensor)).unsqueeze(0).unsqueeze(0)
-        ac = Variable(torch.LongTensor([ac])).unsqueeze(0)
+        ac = torch.LongTensor([ac]).unsqueeze(0)
+        dd = -torch.FloatTensor([dd])+1
         
-        self._get_categorical()
+        # input dim = [batch , channel , h, w ]
+        target_qa_probs = self._get_categorical(st_,re,dd)[0]
+        qa_probs = self.main_dqn(st)[0,ac[0,0],:]
         
-        td_error = re + self.discount * self.target_dqn(st_).max(1)[0] - self.main_dqn(st).gather(1,ac)
-        return abs(td_error.data[0][0])
+        td_error = Variable(re).expand_as(qa_probs) + self.discount *target_qa_probs - qa_probs
+#        td_error = re + self.discount * self.target_dqn(st_).max(1)[0] - self.main_dqn(st).gather(1,ac)
+        return abs(td_error.sum().data[0])
     
     
     def learn(self,memory):

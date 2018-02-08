@@ -222,7 +222,7 @@ while episode < args.max_episode_length:
         
 #        if args.reward_clip > 0:
 #            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
-        td_error = Agent_ptr.get_td_error(reward,state,action,next_state)
+        td_error = Agent_ptr.get_td_error(reward,state,action,next_state,done)
         
         memory.push([state, action, reward, next_state, done])
         state = next_state
