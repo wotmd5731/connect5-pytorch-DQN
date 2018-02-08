@@ -14,7 +14,7 @@ import sys
 
 import argparse
 parser = argparse.ArgumentParser(description='DQN')
-parser.add_argument('--name', type=str, default='main_conv2d.p', help='stored name')
+parser.add_argument('--name', type=str, default='main_conv3d.p', help='stored name')
 parser.add_argument('--epsilon', type=float, default=0.33, help='random action select probability')
 #parser.add_argument('--render', type=bool, default=True, help='enable rendering')
 parser.add_argument('--render', type=bool, default=False, help='enable rendering')
@@ -27,10 +27,10 @@ parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
 parser.add_argument('--action-space', type=int, default=2 ,help='game action space')
 parser.add_argument('--state-space', type=int, default=4 ,help='game action space')
 parser.add_argument('--max-episode-length', type=int, default=100000, metavar='LENGTH', help='Max episode length (0 to disable)')
-parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
-parser.add_argument('--hidden-size', type=int, default=1024, metavar='SIZE', help='Network hidden size')
+parser.add_argument('--history-length', type=int, default=1, metavar='T', help='Number of consecutive states processed')
+parser.add_argument('--hidden-size', type=int, default=512, metavar='SIZE', help='Network hidden size')
 parser.add_argument('--noisy-std', type=float, default=0.1, metavar='σ', help='Initial standard deviation of noisy linear layers')
-parser.add_argument('--atoms', type=int, default=51, metavar='C', help='Discretised size of value distribution')
+parser.add_argument('--atoms', type=int, default=21, metavar='C', help='Discretised size of value distribution')
 parser.add_argument('--V-min', type=float, default=-10, metavar='V', help='Minimum of value distribution support')
 parser.add_argument('--V-max', type=float, default=10, metavar='V', help='Maximum of value distribution support')
 #parser.add_argument('--model', type=str, metavar='PARAMS', help='Pretrained model (state dict)')
@@ -65,7 +65,7 @@ args.cuda = torch.cuda.is_available() and not args.disable_cuda
 torch.manual_seed(random.randint(1, 10000))
 if args.cuda:
   torch.cuda.manual_seed(random.randint(1, 10000))
- 
+
 
 
 #board setup 
@@ -77,6 +77,7 @@ args.memory_capacity = 10000000
 args.learn_start = 100
 args.max_episode_length = 1000000
 #args.render = True
+
 
 
 if args.replay_interval % 2 ==0:
@@ -93,8 +94,8 @@ env = Checkerboard(board_max, args.render)
 #from memory import ReplayMemory 
 #memory = ReplayMemory(args)
 
-from memory import ReplayMemory
-memory = ReplayMemory(args)
+from memory import PER_Memory
+memory = PER_Memory(args)
 
 
 
@@ -104,21 +105,20 @@ memory = ReplayMemory(args)
 #B_Agent = Basic_Agent(args,DQN)
 #W_Agent = Basic_Agent(args,DQN)
 
-from model import DQN_conv2d
-from agent import Agent_conv2d
-B_Agent = Agent_conv2d(args,DQN_conv2d)
-W_Agent = Agent_conv2d(args,DQN_conv2d)
+#from model import DQN_conv2d
+#from agent import Agent_conv2d
+#B_Agent = Agent_conv2d(args,DQN_conv2d)
+#W_Agent = Agent_conv2d(args,DQN_conv2d)
 
-#from model import DQN_conv3d
-#from agent import Agent_conv3d
-#B_Agent = Agent_conv3d(args,DQN_conv3d)
-#W_Agent = Agent_conv3d(args,DQN_conv3d)
+from model import DQN_rainbow
+from agent import Agent_rainbow
+B_Agent = Agent_rainbow(args,DQN_rainbow)
+W_Agent = Agent_rainbow(args,DQN_rainbow)
 
-    
+
 W_Agent.load('W'+args.name)
 B_Agent.load('B'+args.name)
-W_Agent.target_dqn_update()
-B_Agent.target_dqn_update()
+
 
 
 """
@@ -180,12 +180,26 @@ main loop
 """
 global_count = 0
 episode = 0
+
+W_Agent.target_dqn_update()
+B_Agent.target_dqn_update()
+W_Agent.train()
+B_Agent.train()
+    
 while episode < args.max_episode_length:
+    
     
     T=0
     turn = 0
     max_action_value = -999999999999999
+    state_seq = []
+    for i in range(args.history_length):
+        state_seq.append(torch.zeros([board_max,board_max]).type(torch.LongTensor))
     state = env.reset()
+    state_seq.pop(0)
+    state_seq.append(state)
+    
+        
 #    args.epsilon -= 0.8/args.max_episode_length
     while T < args.max_step:
         action_value = -999999999999999
@@ -199,21 +213,27 @@ while episode < args.max_episode_length:
         if random.random() <= args.epsilon or global_count < args.learn_start:
             action = env.get_random_xy_flat()
         else:
-            action, action_value = Agent_ptr.get_action(state)
+            action, action_value = Agent_ptr.get_action(state_seq)
        
         max_action_value = max(max_action_value,action_value)
-        
+                
         next_state , reward , done, _ = env.step_flat(action,turn)
         env.render()
         
 #        if args.reward_clip > 0:
 #            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
+        td_error = Agent_ptr.get_td_error(reward,state,action,next_state)
+        
         memory.push([state, action, reward, next_state, done])
         state = next_state
         
+    
+    
         # replay_interval, target_update_interval  only used  odd number 
         if global_count % args.replay_interval == 0 and global_count > args.learn_start:
             Agent_ptr.learn(memory)
+            Agent_ptr.reset_noise()
+            
         if global_count % args.target_update_interval == 0 :
             Agent_ptr.target_dqn_update()
             
@@ -222,6 +242,10 @@ while episode < args.max_episode_length:
         global_count += 1
         
         if done :
+            B_Agent.reset_noise()
+            W_Agent.reset_noise()
+            
+            
             if args.render:
                 env.render()
             break
@@ -234,7 +258,6 @@ while episode < args.max_episode_length:
 #    if episode % args.evaluation_interval == 0 :
 #        test(episode)
     episode += 1
-    
     
 B_Agent.save('B'+args.name)
 W_Agent.save('W'+args.name)

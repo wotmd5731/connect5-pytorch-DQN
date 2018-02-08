@@ -84,8 +84,10 @@ class PER_Memory:   # stored as ( s, a, r, s_ ) in SumTree
     e = 0.01
     a = 0.6
 
-    def __init__(self, capacity):
-        self.tree = SumTree(capacity)
+    def __init__(self, args):
+        self.tree = SumTree(args.memory_capacity)
+        self.e = args.priority_exponent
+        self.a = args.priority_weight
 
     def _getPriority(self, error):
         return (error + self.e) ** self.a

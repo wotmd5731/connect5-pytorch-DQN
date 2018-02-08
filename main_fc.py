@@ -14,7 +14,7 @@ import sys
 
 import argparse
 parser = argparse.ArgumentParser(description='DQN')
-parser.add_argument('--name', type=str, default='main_conv2d.p', help='stored name')
+parser.add_argument('--name', type=str, default='main_fc.p', help='stored name')
 parser.add_argument('--epsilon', type=float, default=0.33, help='random action select probability')
 #parser.add_argument('--render', type=bool, default=True, help='enable rendering')
 parser.add_argument('--render', type=bool, default=False, help='enable rendering')
@@ -99,15 +99,15 @@ memory = ReplayMemory(args)
 
 
 
-#from model import DQN
-#from agent import Basic_Agent
-#B_Agent = Basic_Agent(args,DQN)
-#W_Agent = Basic_Agent(args,DQN)
+from model import DQN
+from agent import Basic_Agent
+B_Agent = Basic_Agent(args,DQN)
+W_Agent = Basic_Agent(args,DQN)
 
-from model import DQN_conv2d
-from agent import Agent_conv2d
-B_Agent = Agent_conv2d(args,DQN_conv2d)
-W_Agent = Agent_conv2d(args,DQN_conv2d)
+#from model import DQN_conv2d
+#from agent import Agent_conv2d
+#B_Agent = Agent_conv2d(args,DQN_conv2d)
+#W_Agent = Agent_conv2d(args,DQN_conv2d)
 
 #from model import DQN_conv3d
 #from agent import Agent_conv3d
