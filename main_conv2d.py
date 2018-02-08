@@ -115,10 +115,10 @@ W_Agent = Agent_conv2d(args,DQN_conv2d)
 #W_Agent = Agent_conv3d(args,DQN_conv3d)
 
     
-W_Agent.load('W'+args.name)
-B_Agent.load('B'+args.name)
-W_Agent.target_dqn_update()
-B_Agent.target_dqn_update()
+#W_Agent.load('W'+args.name)
+#B_Agent.load('B'+args.name)
+#W_Agent.target_dqn_update()
+#B_Agent.target_dqn_update()
 
 
 """

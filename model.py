@@ -38,13 +38,13 @@ class DQN_conv2d(nn.Module):
         
         self.conv1 = nn.Conv2d(1, 64, 3, padding=1)
         self.conv2 = nn.Conv2d(64, 256, 3, padding=1)
-#        self.conv3 = nn.Conv2d(256, 512, 3, padding=1)
-        self.fc1 = nn.Linear(self.state_space * 256 , self.action_space )
+        self.conv3 = nn.Conv2d(256, 512, 3, padding=1)
+        self.fc1 = nn.Linear(self.state_space * 512 , self.action_space )
         
     def forward(self, x):
         x = F.leaky_relu(self.conv1(x))
         x = F.leaky_relu(self.conv2(x))
-#        x = F.leaky_relu(self.conv3(x))
+        x = F.leaky_relu(self.conv3(x))
         x = F.leaky_relu(self.fc1(x.view(x.size(0),-1)))
         return x
     
