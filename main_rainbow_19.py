@@ -14,7 +14,7 @@ import sys
 
 import argparse
 parser = argparse.ArgumentParser(description='DQN')
-parser.add_argument('--name', type=str, default='main_rainbow_0.3.p', help='stored name')
+parser.add_argument('--name', type=str, default='main_rainbow_19.p', help='stored name')
 parser.add_argument('--epsilon', type=float, default=0.33, help='random action select probability')
 #parser.add_argument('--render', type=bool, default=True, help='enable rendering')
 parser.add_argument('--render', type=bool, default=False, help='enable rendering')
@@ -69,7 +69,7 @@ if args.cuda:
 
 
 #board setup 
-board_max = 7
+board_max = 19
 args.max_step = board_max*board_max
 args.action_space = board_max*board_max
 args.state_space = board_max*board_max
