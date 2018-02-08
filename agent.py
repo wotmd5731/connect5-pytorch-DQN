@@ -160,7 +160,7 @@ class Agent_rainbow(nn.Module):
         self.priority_exponent = args.priority_exponent
         self.max_gradient_norm = args.max_gradient_norm
     
-        self.optimiser = optim.Adam(self.main_dqn.parameters(), lr=args.lr, eps=args.adam_eps)
+        self.optimizer = optim.Adam(self.main_dqn.parameters(), lr=args.lr, eps=args.adam_eps)
       
         if args.cuda:
             self.main_dqn.cuda()
@@ -186,10 +186,14 @@ class Agent_rainbow(nn.Module):
     def target_dqn_update(self):
         self.target_dqn.parameter_update(self.main_dqn)
     
-    def act(self, state):
-         return (self.policy_net(state.unsqueeze(0)).data * self.support).sum(2).max(1)[1][0]
     
-    def get_action(self,state):
+    def get_action(self, state):
+        ret = (self.main_dqn(Variable(state).type(torch.FloatTensor).unsqueeze(0).unsqueeze(0)).data * self.support).sum(2)
+        action = ret.max(1)[1][0]
+        action_value = ret.max(1)[0][0]
+        return action, action_value
+    
+    def prev_action(self,state):
         ret = self.main_dqn(Variable(state,volatile=True).type(torch.FloatTensor).view(1,-1))
         action_value = ret.max(1)[0].data[0]
         action = ret.max(1)[1].data[0] #return max index call [1] 
@@ -269,39 +273,53 @@ class Agent_rainbow(nn.Module):
         target_qa_probs = self._get_categorical(st_,re,dd)[0]
         qa_probs = self.main_dqn(st)[0,ac[0,0],:]
         
-        td_error = Variable(re).expand_as(qa_probs) + self.discount *target_qa_probs - qa_probs
+        td_error = target_qa_probs - qa_probs
 #        td_error = re + self.discount * self.target_dqn(st_).max(1)[0] - self.main_dqn(st).gather(1,ac)
         return abs(td_error.sum().data[0])
     
     
     def learn(self,memory):
-        pass
-#        random.seed(time.time())
-#        
-#        batch = memory.sample(self.batch_size)
-#        [states, actions, rewards, next_states, dones] = zip(*batch)
-#        state_batch = Variable( torch.stack(states,0).type(torch.FloatTensor))
-#        action_batch = Variable(torch.LongTensor(actions))
-#        reward_batch = Variable(torch.FloatTensor(rewards))
-#        next_states_batch = Variable(torch.stack(next_states,0).type(torch.FloatTensor))
-#        done_batch = Variable(torch.FloatTensor(dones))
-#        done_batch = -done_batch +1
-#
-#        
-#        state_action_values = self.main_dqn(state_batch.view(self.batch_size,-1)).gather(1, action_batch.view(-1,1)).view(-1)
-#        next_states_batch.volatile = True
-#        next_state_values = self.target_dqn(next_states_batch.view(self.batch_size,-1)).max(1)[0]
-#        
-#        # Compute the expected Q values
-#        expected_state_action_values = (next_state_values * self.discount * done_batch) + reward_batch
-#        expected_state_action_values.volatile = False
-#        loss = F.mse_loss(state_action_values, expected_state_action_values)        
-#        
-#        self.optimizer.zero_grad()
-#        loss.backward()
-#        nn.utils.clip_grad_norm(self.main_dqn.parameters(), self.max_gradient_norm)  # Clip gradients (normalising by max value of gradient L2 norm)
-#        self.optimizer.step()
-#          
+        
+        #distributional 
+        batch, batch_idx  = memory.sample(self.batch_size)
+       
+        [states, actions, rewards, next_states, dones] = zip(*batch)
+        
+        mask = (-torch.FloatTensor(dones)+1).view(-1,1)
+        rewards = torch.FloatTensor(rewards).view(-1,1)
+        
+        states = Variable(torch.stack(states).type(torch.FloatTensor)).unsqueeze(1)
+        actions = Variable(torch.LongTensor(actions))
+        rewards = (torch.FloatTensor(rewards))
+        next_states = Variable(torch.stack(next_states).type(torch.FloatTensor)).unsqueeze(1)
+        
+        
+        # Compute probabilities of Q(s,a*)
+        q_probs = self.main_dqn(states)
+        actions = actions.view(self.batch_size, 1, 1)
+        action_mask = actions.expand(self.batch_size, 1, self.atoms)
+        qa_probs = q_probs.gather(1, action_mask).squeeze()
+
+        # Compute distribution of Q(s_,a)
+        target_qa_probs = self._get_categorical(next_states, rewards, mask)
+
+        # Compute the cross-entropy of phi(TZ(x_,a)) || Z(x,a)
+        qa_probs.data.clamp_(-5, 5)  # Tudor's trick for avoiding nans
+        loss = - torch.sum(target_qa_probs * torch.log(qa_probs))
+        
+        
+        td_error = target_qa_probs - qa_probs
+        for i in range(self.batch_size):
+            val = abs(td_error[i].data[0])
+            memory.update(batch_idx[i],val)
+            
+        
+        # Accumulate gradients
+        self.main_dqn.zero_grad()
+        loss.backward()
+        nn.utils.clip_grad_norm(self.main_dqn.parameters(), self.max_gradient_norm)  # Clip gradients (normalising by max value of gradient L2 norm)
+        self.optimizer.step()
+        
         
     
     

@@ -192,12 +192,7 @@ while episode < args.max_episode_length:
     T=0
     turn = 0
     max_action_value = -999999999999999
-    state_seq = []
-    for i in range(args.history_length):
-        state_seq.append(torch.zeros([board_max,board_max]).type(torch.LongTensor))
     state = env.reset()
-    state_seq.pop(0)
-    state_seq.append(state)
     
         
 #    args.epsilon -= 0.8/args.max_episode_length
@@ -213,7 +208,7 @@ while episode < args.max_episode_length:
         if random.random() <= args.epsilon or global_count < args.learn_start:
             action = env.get_random_xy_flat()
         else:
-            action, action_value = Agent_ptr.get_action(state_seq)
+            action, action_value = Agent_ptr.get_action(state)
        
         max_action_value = max(max_action_value,action_value)
                 
@@ -224,7 +219,7 @@ while episode < args.max_episode_length:
 #            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
         td_error = Agent_ptr.get_td_error(reward,state,action,next_state,done)
         
-        memory.push([state, action, reward, next_state, done])
+        memory.push(td_error,[state, action, reward, next_state, done])
         state = next_state
         
     
