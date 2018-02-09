@@ -12,13 +12,23 @@ from torch.autograd import Variable
 import torch.multiprocessing as mp
 #import torchvision.transforms as T
 import sys
+import os 
 
 import argparse
-
+"""
+O - noisy
+O - distributional
+O - dueling
+O - double
+O - priority exp replay 
+X - multi step (no apply)
+X - ResNeXt
+X - share_replay_memory
+"""
 #"""
 #define test function
 #"""
-#from plot import _plot_line
+from plot import _plot_line
 #current_time = time.time()
 #Ts, Trewards, Qs = [], [], []
 #def test(main_episode):
@@ -68,7 +78,7 @@ import argparse
 
 
 
-def run_process(args,B_share_model,W_share_model,board_max):
+def run_process(args,B_share_model,W_share_model,board_max,rank):
     
     from checkerboard import Checkerboard
     env = Checkerboard(board_max, args.render)
@@ -79,7 +89,10 @@ def run_process(args,B_share_model,W_share_model,board_max):
     from agent import Agent_rainbow
     B_Agent = Agent_rainbow(args)
     W_Agent = Agent_rainbow(args)
-    
+    B_Agent.main_dqn = B_share_model
+    W_Agent.main_dqn = W_share_model
+    B_Agent.optimizer = optim.Adam(B_share_model.parameters(), lr=args.lr, eps=args.adam_eps)
+    W_Agent.optimizer = optim.Adam(W_share_model.parameters(), lr=args.lr, eps=args.adam_eps)
     
     from memory import PER_Memory
     memory = PER_Memory(args)
@@ -99,20 +112,23 @@ def run_process(args,B_share_model,W_share_model,board_max):
     B_Agent.target_dqn_update()
     W_Agent.train()
     B_Agent.train()
-        
-        
-    while episode < args.max_episode_length:
-        W_Agent.main_dqn.load_state_dict(W_share_model.state_dict())
-        B_Agent.main_dqn.load_state_dict(B_share_model.state_dict())
 
+    Ts =[]
+    Trewards =[]
+    TQmax = []
+    while episode < args.max_episode_length:
+        
         T=0
         turn = 0
         max_action_value = -999999999999999
         state = env.reset()
-        
-            
+        evaluation = False
+        total_reward = 0
+        if episode % args.evaluation_interval == 0 :
+            evaluation = True
     #    args.epsilon -= 0.8/args.max_episode_length
         while T < args.max_step:
+            
             action_value = -999999999999999
             if T%2 == 0 :
                 Agent_ptr = B_Agent
@@ -121,7 +137,7 @@ def run_process(args,B_share_model,W_share_model,board_max):
                 Agent_ptr = W_Agent
                 turn = env.white
             
-            if random.random() <= args.epsilon or global_count < args.learn_start:
+            if not evaluation and (random.random() <= args.epsilon or global_count < args.learn_start ):
                 action = env.get_random_xy_flat()
             else:
                 action, action_value = Agent_ptr.get_action(state)
@@ -134,18 +150,18 @@ def run_process(args,B_share_model,W_share_model,board_max):
     #        if args.reward_clip > 0:
     #            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
             td_error = Agent_ptr.get_td_error(reward,state,action,next_state,done)
-            
+            total_reward += reward
             memory.push(td_error,[state, action, reward, next_state, done])
             state = next_state
             
         
         
             # replay_interval, target_update_interval  only used  odd number 
-            if global_count % args.replay_interval == 0 and global_count > args.learn_start:
+            if not evaluation and global_count % args.replay_interval == 0 and global_count > args.learn_start:
                 Agent_ptr.learn(memory)
                 Agent_ptr.reset_noise()
-                
-            if global_count % args.target_update_interval == 0 :
+
+            if not evaluation and global_count % args.target_update_interval == 0 :
                 Agent_ptr.target_dqn_update()
                 
                 
@@ -155,19 +171,25 @@ def run_process(args,B_share_model,W_share_model,board_max):
             if done :
                 B_Agent.reset_noise()
                 W_Agent.reset_noise()
+                
                 if args.render:
                     env.render()
                 break
+        
+        if evaluation :
+            print('episode : ', episode, '  step : ',T, ' max_action ',max_action_value, 'total_reward : ' , total_reward)
+            Ts.append(episode)
+            Trewards.append([total_reward])
+            TQmax.append([max_action_value])
+            _plot_line(Ts, Trewards, 'rewards_'+args.name+'_'+str(rank), path='results')
+            _plot_line(Ts, Trewards, 'Q_'+args.name+'_'+str(rank), path='results')
         if episode % args.save_interval ==0 :
+            print('save')
             B_Agent.save('B'+args.name)
             W_Agent.save('W'+args.name)
-        print('episode : ', episode, '  step : ',T, ' max_action ',max_action_value)
-    #    if episode % args.evaluation_interval == 0 :
-    #        test(episode)
+
         episode += 1
         
-    B_Agent.save('B'+args.name)
-    W_Agent.save('W'+args.name)
 
 
 
@@ -207,9 +229,9 @@ if __name__ == '__main__':
     parser.add_argument('--adam-eps', type=float, default=1.5e-4, metavar='ε', help='Adam epsilon')
     parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='Batch size')
     parser.add_argument('--max-gradient-norm', type=float, default=10, metavar='VALUE', help='Max value of gradient L2 norm for gradient clipping')
-    parser.add_argument('--save-interval', type=int, default=1000, metavar='SAVE', help='Save interval')
+    parser.add_argument('--save-interval', type=int, default=100, metavar='SAVE', help='Save interval')
     #parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
-    #parser.add_argument('--evaluation-interval', type=int, default=10, metavar='STEPS', help='Number of training steps between evaluations')
+    parser.add_argument('--evaluation-interval', type=int, default=10, metavar='STEPS', help='Number of training steps between evaluations')
     #parser.add_argument('--evaluation-episodes', type=int, default=1, metavar='N', help='Number of evaluation episodes to average over')
     #parser.add_argument('--evaluation-size', type=int, default=500, metavar='N', help='Number of transitions to use for validating Q')
     #parser.add_argument('--log-interval', type=int, default=25000, metavar='STEPS', help='Number of training steps between logging status')
@@ -254,12 +276,16 @@ if __name__ == '__main__':
     B_share_model = DQN_rainbow(args)
     W_share_model.share_memory()
     B_share_model.share_memory()
+    if os.path.exists('B'+args.name):
+        print('load')
+        B_share_model.load_state_dict(torch.load('B'+args.name))
+        W_share_model.load_state_dict(torch.load('W'+args.name))
+#    run_process(args,B_share_model,W_share_model,board_max,999)
     
-    
-    num_processes = 4
+    num_processes = 9
     processes = []
     for rank in range(num_processes):
-        p = mp.Process(target=run_process, args=(args,B_share_model,W_share_model,board_max))
+        p = mp.Process(target=run_process, args=(args,B_share_model,W_share_model,board_max,rank))
         p.start()
         processes.append(p)
     for p in processes:

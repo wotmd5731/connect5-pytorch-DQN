@@ -148,12 +148,12 @@ class Agent_rainbow(nn.Module):
         self.state_space = args.state_space
         
 #        self.main_dqn= DQN_model(args)
-        self.main_dqn= DQN_rainbow(args)
-        self.main_dqn.train()
+        self.main_dqn = 0
+#        self.main_dqn.train()
         self.target_dqn = DQN_rainbow(args)
 #        self.target_dqn = target_model
-        self.target_dqn_update()
-        self.target_dqn.eval()
+#        self.target_dqn_update()
+#        self.target_dqn.eval()
         
         self.atoms = args.atoms
         self.v_min = args.V_min
@@ -165,7 +165,8 @@ class Agent_rainbow(nn.Module):
         self.priority_exponent = args.priority_exponent
         self.max_gradient_norm = args.max_gradient_norm
     
-        self.optimizer = optim.Adam(self.main_dqn.parameters(), lr=args.lr, eps=args.adam_eps)
+#        self.optimizer = optim.Adam(self.main_dqn.parameters(), lr=args.lr, eps=args.adam_eps)
+        self.optimizer  = 0
       
         if args.cuda:
             self.main_dqn.cuda()
@@ -309,8 +310,11 @@ class Agent_rainbow(nn.Module):
         target_qa_probs = self._get_categorical(next_states, rewards, mask)
 
         # Compute the cross-entropy of phi(TZ(x_,a)) || Z(x,a)
-        qa_probs.data.clamp_(-5, 5)  # Tudor's trick for avoiding nans
-        loss = - torch.sum(target_qa_probs * torch.log(qa_probs))
+        qa_probs.data.clamp_(0.01, 0.99)   # Tudor's trick for avoiding nans
+        
+#        loss = - torch.sum(target_qa_probs * torch.log(qa_probs))
+        loss = F.kl_div(qa_probs,target_qa_probs)
+        
         
         
         td_error = target_qa_probs - qa_probs
