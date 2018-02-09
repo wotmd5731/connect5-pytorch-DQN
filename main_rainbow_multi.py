@@ -14,79 +14,6 @@ import torch.multiprocessing as mp
 import sys
 
 import argparse
-parser = argparse.ArgumentParser(description='DQN')
-parser.add_argument('--name', type=str, default='main_rainbow_multi.p', help='stored name')
-parser.add_argument('--epsilon', type=float, default=0.33, help='random action select probability')
-#parser.add_argument('--render', type=bool, default=True, help='enable rendering')
-parser.add_argument('--render', type=bool, default=False, help='enable rendering')
-parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
-#parser.add_argument('--game', type=str, default='CartPole-v1', help='gym game')
-#parser.add_argument('--game', type=str, default='Acrobot-v1', help='gym game')
-#parser.add_argument('--game', type=str, default='MountainCar-v0', help='gym game')
-#parser.add_argument('--max-step', type=int, default=500, metavar='STEPS', help='Number of training steps (4x number of frames)')
-parser.add_argument('--action-space', type=int, default=2 ,help='game action space')
-parser.add_argument('--state-space', type=int, default=4 ,help='game action space')
-parser.add_argument('--max-episode-length', type=int, default=100000, metavar='LENGTH', help='Max episode length (0 to disable)')
-parser.add_argument('--history-length', type=int, default=1, metavar='T', help='Number of consecutive states processed')
-parser.add_argument('--hidden-size', type=int, default=512, metavar='SIZE', help='Network hidden size')
-parser.add_argument('--noisy-std', type=float, default=0.1, metavar='σ', help='Initial standard deviation of noisy linear layers')
-parser.add_argument('--atoms', type=int, default=21, metavar='C', help='Discretised size of value distribution')
-parser.add_argument('--V-min', type=float, default=-10, metavar='V', help='Minimum of value distribution support')
-parser.add_argument('--V-max', type=float, default=10, metavar='V', help='Maximum of value distribution support')
-#parser.add_argument('--model', type=str, metavar='PARAMS', help='Pretrained model (state dict)')
-parser.add_argument('--memory-capacity', type=int, default=1000000, metavar='CAPACITY', help='Experience replay memory capacity')
-parser.add_argument('--learn-start', type=int, default=100 , metavar='STEPS', help='Number of steps before starting training')
-parser.add_argument('--replay-interval', type=int, default=4, metavar='k', help='Frequency of sampling from memory')
-parser.add_argument('--priority-exponent', type=float, default=0.5, metavar='ω', help='Prioritised experience replay exponent')
-parser.add_argument('--priority-weight', type=float, default=0.4, metavar='β', help='Initial prioritised experience replay importance sampling weight')
-#parser.add_argument('--multi-step', type=int, default=3, metavar='n', help='Number of steps for multi-step return')
-parser.add_argument('--discount', type=float, default=0.99, metavar='γ', help='Discount factor')
-parser.add_argument('--target-update-interval', type=int, default=8, metavar='τ', help='Number of steps after which to update target network')
-parser.add_argument('--reward-clip', type=int, default=10, metavar='VALUE', help='Reward clipping (0 to disable)')
-parser.add_argument('--lr', type=float, default=0.0000625, metavar='η', help='Learning rate')
-parser.add_argument('--adam-eps', type=float, default=1.5e-4, metavar='ε', help='Adam epsilon')
-parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='Batch size')
-parser.add_argument('--max-gradient-norm', type=float, default=10, metavar='VALUE', help='Max value of gradient L2 norm for gradient clipping')
-parser.add_argument('--save-interval', type=int, default=1000, metavar='SAVE', help='Save interval')
-#parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
-#parser.add_argument('--evaluation-interval', type=int, default=10, metavar='STEPS', help='Number of training steps between evaluations')
-#parser.add_argument('--evaluation-episodes', type=int, default=1, metavar='N', help='Number of evaluation episodes to average over')
-#parser.add_argument('--evaluation-size', type=int, default=500, metavar='N', help='Number of transitions to use for validating Q')
-#parser.add_argument('--log-interval', type=int, default=25000, metavar='STEPS', help='Number of training steps between logging status')
-
-# Setup
-args = parser.parse_args()
-" disable cuda "
-args.disable_cuda = True
-    
-print(' ' * 26 + 'Options')
-for k, v in vars(args).items():
-  print(' ' * 26 + k + ': ' + str(v))
-args.cuda = torch.cuda.is_available() and not args.disable_cuda
-torch.manual_seed(random.randint(1, 10000))
-if args.cuda:
-  torch.cuda.manual_seed(random.randint(1, 10000))
-
-
-
-#board setup 
-board_max = 7
-args.max_step = board_max*board_max
-args.action_space = board_max*board_max
-args.state_space = board_max*board_max
-args.memory_capacity = 10000
-args.learn_start = 10
-args.max_episode_length = 100
-#args.render = True
-
-
-
-
-if args.replay_interval % 2 ==0:
-    args.replay_interval += 1 
-if args.target_update_interval % 2 == 0:
-    args.target_update_interval += 1
-
 
 #"""
 #define test function
@@ -141,33 +68,24 @@ if args.target_update_interval % 2 == 0:
 
 
 
-
-def run_process(args):
+def run_process(args,B_share_model,W_share_model,board_max):
     
     from checkerboard import Checkerboard
     env = Checkerboard(board_max, args.render)
     
-    #from env import Env
-    #env = Env(args)
-    
     #from memory import ReplayMemory 
     #memory = ReplayMemory(args)
+    
+    from agent import Agent_rainbow
+    B_Agent = Agent_rainbow(args)
+    W_Agent = Agent_rainbow(args)
+    
     
     from memory import PER_Memory
     memory = PER_Memory(args)
     
-    from model import DQN_rainbow
-    from agent import Agent_rainbow
-    B_Agent = Agent_rainbow(args,DQN_rainbow)
-    W_Agent = Agent_rainbow(args,DQN_rainbow)
-    W_Agent.main_dqn.share_memory()
-    B_Agent.main_dqn.share_memory()
-    
-    
     #W_Agent.load('W'+args.name)
     #B_Agent.load('B'+args.name)
-    
-    
 
     random.seed(time.time())
     """
@@ -176,14 +94,17 @@ def run_process(args):
     global_count = 0
     episode = 0
     
+
     W_Agent.target_dqn_update()
     B_Agent.target_dqn_update()
     W_Agent.train()
     B_Agent.train()
         
+        
     while episode < args.max_episode_length:
-        
-        
+        W_Agent.main_dqn.load_state_dict(W_share_model.state_dict())
+        B_Agent.main_dqn.load_state_dict(B_share_model.state_dict())
+
         T=0
         turn = 0
         max_action_value = -999999999999999
@@ -208,7 +129,7 @@ def run_process(args):
             max_action_value = max(max_action_value,action_value)
                     
             next_state , reward , done, _ = env.step_flat(action,turn)
-            env.render()
+#            env.render()
             
     #        if args.reward_clip > 0:
     #            reward = max(min(reward, args.reward_clip), -args.reward_clip)  # Clip rewards
@@ -252,10 +173,93 @@ def run_process(args):
 
 
 if __name__ == '__main__':
-    num_processes = 1
+    
+    parser = argparse.ArgumentParser(description='DQN')
+    parser.add_argument('--name', type=str, default='main_rainbow_multi.p', help='stored name')
+    parser.add_argument('--epsilon', type=float, default=0.33, help='random action select probability')
+    #parser.add_argument('--render', type=bool, default=True, help='enable rendering')
+    parser.add_argument('--render', type=bool, default=False, help='enable rendering')
+    parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
+    #parser.add_argument('--game', type=str, default='CartPole-v1', help='gym game')
+    #parser.add_argument('--game', type=str, default='Acrobot-v1', help='gym game')
+    #parser.add_argument('--game', type=str, default='MountainCar-v0', help='gym game')
+    #parser.add_argument('--max-step', type=int, default=500, metavar='STEPS', help='Number of training steps (4x number of frames)')
+    parser.add_argument('--action-space', type=int, default=2 ,help='game action space')
+    parser.add_argument('--state-space', type=int, default=4 ,help='game action space')
+    parser.add_argument('--max-episode-length', type=int, default=100000, metavar='LENGTH', help='Max episode length (0 to disable)')
+    parser.add_argument('--history-length', type=int, default=1, metavar='T', help='Number of consecutive states processed')
+    parser.add_argument('--hidden-size', type=int, default=512, metavar='SIZE', help='Network hidden size')
+    parser.add_argument('--noisy-std', type=float, default=0.1, metavar='σ', help='Initial standard deviation of noisy linear layers')
+    parser.add_argument('--atoms', type=int, default=21, metavar='C', help='Discretised size of value distribution')
+    parser.add_argument('--V-min', type=float, default=-10, metavar='V', help='Minimum of value distribution support')
+    parser.add_argument('--V-max', type=float, default=10, metavar='V', help='Maximum of value distribution support')
+    #parser.add_argument('--model', type=str, metavar='PARAMS', help='Pretrained model (state dict)')
+    parser.add_argument('--memory-capacity', type=int, default=1000000, metavar='CAPACITY', help='Experience replay memory capacity')
+    parser.add_argument('--learn-start', type=int, default=100 , metavar='STEPS', help='Number of steps before starting training')
+    parser.add_argument('--replay-interval', type=int, default=4, metavar='k', help='Frequency of sampling from memory')
+    parser.add_argument('--priority-exponent', type=float, default=0.5, metavar='ω', help='Prioritised experience replay exponent')
+    parser.add_argument('--priority-weight', type=float, default=0.4, metavar='β', help='Initial prioritised experience replay importance sampling weight')
+    #parser.add_argument('--multi-step', type=int, default=3, metavar='n', help='Number of steps for multi-step return')
+    parser.add_argument('--discount', type=float, default=0.99, metavar='γ', help='Discount factor')
+    parser.add_argument('--target-update-interval', type=int, default=8, metavar='τ', help='Number of steps after which to update target network')
+    parser.add_argument('--reward-clip', type=int, default=10, metavar='VALUE', help='Reward clipping (0 to disable)')
+    parser.add_argument('--lr', type=float, default=0.0000625, metavar='η', help='Learning rate')
+    parser.add_argument('--adam-eps', type=float, default=1.5e-4, metavar='ε', help='Adam epsilon')
+    parser.add_argument('--batch-size', type=int, default=32, metavar='SIZE', help='Batch size')
+    parser.add_argument('--max-gradient-norm', type=float, default=10, metavar='VALUE', help='Max value of gradient L2 norm for gradient clipping')
+    parser.add_argument('--save-interval', type=int, default=1000, metavar='SAVE', help='Save interval')
+    #parser.add_argument('--evaluate', action='store_true', help='Evaluate only')
+    #parser.add_argument('--evaluation-interval', type=int, default=10, metavar='STEPS', help='Number of training steps between evaluations')
+    #parser.add_argument('--evaluation-episodes', type=int, default=1, metavar='N', help='Number of evaluation episodes to average over')
+    #parser.add_argument('--evaluation-size', type=int, default=500, metavar='N', help='Number of transitions to use for validating Q')
+    #parser.add_argument('--log-interval', type=int, default=25000, metavar='STEPS', help='Number of training steps between logging status')
+    
+    # Setup
+    args = parser.parse_args()
+    " disable cuda "
+    args.disable_cuda = True
+        
+    print(' ' * 26 + 'Options')
+    for k, v in vars(args).items():
+      print(' ' * 26 + k + ': ' + str(v))
+    args.cuda = torch.cuda.is_available() and not args.disable_cuda
+    torch.manual_seed(random.randint(1, 10000))
+    if args.cuda:
+      torch.cuda.manual_seed(random.randint(1, 10000))
+    
+    
+    
+    #board setup 
+    board_max = 7
+    args.max_step = board_max*board_max
+    args.action_space = board_max*board_max
+    args.state_space = board_max*board_max
+    args.memory_capacity = 10000000
+    args.learn_start = 10
+    args.max_episode_length = 100000
+#    args.render = True
+    
+    
+    
+    
+    if args.replay_interval % 2 ==0:
+        args.replay_interval += 1 
+    if args.target_update_interval % 2 == 0:
+        args.target_update_interval += 1
+    
+
+    
+    from model import DQN_rainbow
+    W_share_model = DQN_rainbow(args)
+    B_share_model = DQN_rainbow(args)
+    W_share_model.share_memory()
+    B_share_model.share_memory()
+    
+    
+    num_processes = 4
     processes = []
     for rank in range(num_processes):
-        p = mp.Process(target=run_process, args=(args,))
+        p = mp.Process(target=run_process, args=(args,B_share_model,W_share_model,board_max))
         p.start()
         processes.append(p)
     for p in processes:

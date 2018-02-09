@@ -12,6 +12,8 @@ import os
 
 
 
+
+
 class Basic_Agent(nn.Module):
     
     def __init__(self,args,DQN_model):
@@ -132,9 +134,10 @@ class Agent_conv2d(Basic_Agent):
     
     
     
-            
+from model import DQN_rainbow
+
 class Agent_rainbow(nn.Module):
-    def __init__(self,args,DQN_model):
+    def __init__(self,args):
         super().__init__()
         
         self.batch_size = args.batch_size 
@@ -144,9 +147,11 @@ class Agent_rainbow(nn.Module):
         self.hidden_size = args.hidden_size
         self.state_space = args.state_space
         
-        self.main_dqn= DQN_model(args)
+#        self.main_dqn= DQN_model(args)
+        self.main_dqn= DQN_rainbow(args)
         self.main_dqn.train()
-        self.target_dqn = DQN_model(args)
+        self.target_dqn = DQN_rainbow(args)
+#        self.target_dqn = target_model
         self.target_dqn_update()
         self.target_dqn.eval()
         

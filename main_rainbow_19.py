@@ -127,7 +127,7 @@ define test function
 """
 from plot import _plot_line
 current_time = time.time()
-Ts, Trewards, Qs = [], [], []
+Ts, Trewards, Qs = [], [], [] 
 def test(main_episode):
     global current_time
     prev_time = current_time
