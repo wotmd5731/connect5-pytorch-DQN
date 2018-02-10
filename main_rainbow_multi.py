@@ -24,56 +24,13 @@ O - priority exp replay
 X - multi step (no apply)
 X - ResNeXt
 X - share_replay_memory
+X - history_length
 """
 #"""
 #define test function
 #"""
 from plot import _plot_line
-#current_time = time.time()
-#Ts, Trewards, Qs = [], [], []
-#def test(main_episode):
-#    global current_time
-#    prev_time = current_time
-#    current_time = time.time()
-#    T_rewards, T_Qs = [], []
-#    Ts.append(main_episode)
-#    total_reward = 0
-#    
-#    episode = 0
-#    while episode < args.evaluation_episodes:
-#        episode += 1
-#        T=0
-#        reward_sum=0
-#        state = env.reset()
-#        while T < args.max_step:
-#            T += 1
-#            if args.render:
-#                env.render()
-#                
-#            action = B_Agent.get_action(state,evaluate=True)
-#            next_state , reward , done, _ = env.step(action)
-#            state = next_state
-#    
-#            total_reward += reward
-#            reward_sum += reward
-#            if done:
-#                break
-#        T_rewards.append(reward_sum)
-#    ave_reward = total_reward/args.evaluation_episodes
-#    # Append to results
-#    Trewards.append(T_rewards)
-##        Qs.append(T_Qs)
-#    
-#    # Plot
-#    _plot_line(Ts, Trewards, 'rewards_'+args.name+args.game, path='results')
-##        _plot_line(Ts, Qs, 'Q', path='results')
-#    
-#    # Save model weights
-##        main_dqn.save('results')
-#    print('episode: ',main_episode,'Evaluation Average Reward:',ave_reward, 'delta time:',current_time-prev_time)
-##            if ave_reward >= 300:
-##                break
-    
+
 
 
 
@@ -182,7 +139,7 @@ def run_process(args,B_share_model,W_share_model,board_max,rank):
             Trewards.append([total_reward])
             TQmax.append([max_action_value])
             _plot_line(Ts, Trewards, 'rewards_'+args.name+'_'+str(rank), path='results')
-            _plot_line(Ts, Trewards, 'Q_'+args.name+'_'+str(rank), path='results')
+            _plot_line(Ts, TQmax, 'Q_'+args.name+'_'+str(rank), path='results')
         if episode % args.save_interval ==0 :
             print('save')
             B_Agent.save('B'+args.name)
