@@ -194,7 +194,7 @@ class Agent_rainbow(nn.Module):
     
     
     def get_action(self, state):
-        ret = (self.main_dqn(Variable(state).type(torch.FloatTensor).unsqueeze(0).unsqueeze(0)).data * self.support).sum(2)
+        ret = (self.main_dqn(Variable(state, volatile=True).type(torch.FloatTensor).unsqueeze(0).unsqueeze(0)).data * self.support).sum(2)
         action = ret.max(1)[1][0]
         action_value = ret.max(1)[0][0]
         return action, action_value
@@ -312,8 +312,11 @@ class Agent_rainbow(nn.Module):
         # Compute the cross-entropy of phi(TZ(x_,a)) || Z(x,a)
         qa_probs.data.clamp_(0.01, 0.99)   # Tudor's trick for avoiding nans
         
+        
+        loss = (target_qa_probs - qa_probs).sum(1).mean()
 #        loss = - torch.sum(target_qa_probs * torch.log(qa_probs))
-        loss = F.kl_div(qa_probs,target_qa_probs)
+        # kl_div 는 항상 >0 큼으로 기본적으로 -1 시스템에서 사용할 수 없다. 
+#        loss = F.kl_div(qa_probs,target_qa_probs)  
         
         
         
@@ -322,7 +325,7 @@ class Agent_rainbow(nn.Module):
             val = abs(td_error[i].data[0])
             memory.update(batch_idx[i],val)
             
-        
+        print('loss : ',loss.data[0])
         # Accumulate gradients
         self.main_dqn.zero_grad()
         loss.backward()
